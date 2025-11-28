@@ -4,7 +4,7 @@ import requests
 # =========================================================
 # 🔐 INSERT YOUR SARVAM API KEY BELOW
 # =========================================================
-SARVAM_API_KEY = "sk_qu4m7nvw_v4P2qUowg5ALmE4MckEYS74s"  # <--- CHANGE THIS ONLY
+SARVAM_API_KEY = "PASTE_YOUR_KEY_HERE"  # <--- CHANGE THIS ONLY
 # =========================================================
 
 BASE_URL = "https://api.sarvam.ai/v1"
@@ -64,13 +64,12 @@ def generate_itinerary(destination, duration, interests, budget, language):
             {
                 "role": "system",
                 "content": f"""
-                You are an expert travel planner.
-                Write ONLY in {language}.
+                You are a professional travel planner.
+                Respond ONLY in {language}.
                 Create a {duration}-day itinerary for {destination}.
-                Include attractions, food, culture, transport & tips.
-                Budget level: {budget}.
-                Interests: {', '.join(interests)}.
-                Keep it short, clear and structured.
+                Include attractions, timing, food, culture and travel tips.
+                Budget: {budget}. Interests: {', '.join(interests)}.
+                Keep it clear and structured.
                 """
             },
             {"role": "user", "content": f"Plan my {duration}-day trip to {destination}."}
@@ -83,14 +82,15 @@ def generate_itinerary(destination, duration, interests, budget, language):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "saarvam-chat",
+                "model": "sarvam-m",   # ✅ Correct model
                 "messages": messages,
                 "temperature": 0.7,
-                "max_tokens": 3000
+                "max_tokens": 2000
             }
         )
 
         return res.json()
+
     except Exception as e:
         return {"error": str(e)}
 
@@ -116,12 +116,12 @@ preferred_lang = st.sidebar.selectbox(
 )
 
 # -------------------------------------------------------
-# USER INPUT FORM
+# INPUT FORM
 # -------------------------------------------------------
 
 with st.form("trip_form"):
     destination = st.text_input("Where do you want to go?")
-    duration = st.number_input("How many days?", 1, 30, 5)
+    duration = st.number_input("Trip duration (days)", 1, 30, 5)
     interests = st.multiselect(
         "Your interests:",
         ["Culture", "Food", "Nature", "Adventure", "History", "Shopping", "Relaxation"]
@@ -136,32 +136,26 @@ with st.form("trip_form"):
 
 if submit and destination:
     with st.spinner("Generating your itinerary..."):
-
-        # 1. Detect language of input
+        
         detected = detect_language(destination)
         detected_lang = detected.get("language", "en")
 
-        # 2. Call Sarvam itinerary generator
         response = generate_itinerary(
             destination, duration, interests, budget, detected_lang
         )
 
-        # 3. Debug panel (shows raw API response)
-        st.markdown("### 🛠 DEBUG: API Response")
+        # Debug info
+        st.markdown("### 🛠 Debug: API Response")
         st.json(response)
 
-        # 4. Extract content safely
-        content = ""
         try:
             content = response["choices"][0]["message"]["content"]
         except:
-            content = "⚠️ No content returned from API. Check your API key or model."
+            content = "⚠️ API returned no content. Check API key or request body."
 
-        # 5. Translate if needed
         if preferred_lang != "en":
             content = translate_text(content, preferred_lang)
 
-        # 6. Display itinerary
         st.markdown("## 🗺 Your Itinerary")
         st.markdown(content)
 
