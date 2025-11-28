@@ -1,11 +1,10 @@
-import os
 import streamlit as st
 import requests
 
 # =========================================================
-# 🔐 INSERT YOUR API KEY BELOW (replace YOUR_KEY_HERE)
+# 🔐 INSERT YOUR SARVAM API KEY BELOW
 # =========================================================
-SARVAM_API_KEY = "sk_qu4m7nvw_v4P2qUowg5ALmE4MckEYS74s"   # ←←← REPLACE THIS ONLY
+SARVAM_API_KEY = "sk_qu4m7nvw_v4P2qUowg5ALmE4MckEYS74s"  # <--- CHANGE THIS ONLY
 # =========================================================
 
 BASE_URL = "https://api.sarvam.ai/v1"
@@ -13,114 +12,95 @@ BASE_URL = "https://api.sarvam.ai/v1"
 LANGUAGE_CODES = {
     'en': 'en-IN', 'hi': 'hi-IN', 'bn': 'bn-IN',
     'ta': 'ta-IN', 'te': 'te-IN', 'mr': 'mr-IN',
-    'gu': 'gu-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'pa': 'pa-IN'
+    'gu': 'gu-IN', 'kn': 'kn-IN', 'ml': 'ml-IN',
+    'pa': 'pa-IN'
 }
 
-# --------------------------
-# API UTILITIES
-# --------------------------
+# -------------------------------------------------------
+# API CALLS
+# -------------------------------------------------------
 
 def detect_language(text):
-    """Detect language safely."""
     try:
-        headers = {
-            "Authorization": f"Bearer {SARVAM_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        response = requests.post(
+        res = requests.post(
             f"{BASE_URL}/language/detect",
-            headers=headers,
+            headers={
+                "Authorization": f"Bearer {SARVAM_API_KEY}",
+                "Content-Type": "application/json"
+            },
             json={"text": text}
         )
-        return response.json()
-    except Exception as e:
-        return {"language": "en", "error": str(e)}
+        return res.json()
+    except:
+        return {"language": "en"}
 
 
-def translate_text(text, target_language, mode="formal"):
+def translate_text(text, target_lang):
     try:
-        headers = {
-            "api-subscription-key": SARVAM_API_KEY,
-            "Content-Type": "application/json"
-        }
-
-        target_lang_code = LANGUAGE_CODES.get(target_language, 'en-IN')
-
-        response = requests.post(
+        res = requests.post(
             "https://api.sarvam.ai/translate",
-            headers=headers,
+            headers={
+                "api-subscription-key": SARVAM_API_KEY,
+                "Content-Type": "application/json"
+            },
             json={
                 "input": text,
                 "source_language_code": "auto",
-                "target_language_code": target_lang_code,
-                "mode": mode,
+                "target_language_code": LANGUAGE_CODES.get(target_lang, "en-IN"),
+                "mode": "formal",
                 "enable_preprocessing": True,
                 "output_script": "fully-native",
                 "numerals_format": "international"
             }
         )
-        return response.json()
+        return res.json().get("translated_text", text)
     except:
-        return {"translated_text": text}
+        return text
 
 
-def generate_itinerary(destination, duration, interests, budget, language="en"):
-    """Generate plan using Sarvam chat model."""
-    if not language:
-        language = "en"
-
+def generate_itinerary(destination, duration, interests, budget, language):
     try:
-        headers = {
-            "Authorization": f"Bearer {SARVAM_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        system_prompt = f"""
-        You are an expert travel planner for {destination}.
-        Write the itinerary ONLY in {language}.
-        Create a {duration}-day itinerary with:
-        - Activities
-        - Local attractions
-        - Culture, food
-        - Transport tips
-        - Budget: {budget}
-        Interests: {', '.join(interests)}
-        Keep it structured and concise.
-        """
-
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Create a {duration}-day itinerary for {destination}."}
+            {
+                "role": "system",
+                "content": f"""
+                You are an expert travel planner.
+                Write ONLY in {language}.
+                Create a {duration}-day itinerary for {destination}.
+                Include attractions, food, culture, transport & tips.
+                Budget level: {budget}.
+                Interests: {', '.join(interests)}.
+                Keep it short, clear and structured.
+                """
+            },
+            {"role": "user", "content": f"Plan my {duration}-day trip to {destination}."}
         ]
 
-        response = requests.post(
+        res = requests.post(
             f"{BASE_URL}/chat/completions",
-            headers=headers,
+            headers={
+                "Authorization": f"Bearer {SARVAM_API_KEY}",
+                "Content-Type": "application/json"
+            },
             json={
-                "messages": messages,
                 "model": "saarvam-chat",
+                "messages": messages,
                 "temperature": 0.7,
-                "max_tokens": 4000
+                "max_tokens": 3000
             }
         )
 
-        return response.json()
-
+        return res.json()
     except Exception as e:
-        return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
+        return {"error": str(e)}
 
-
-# --------------------------
+# -------------------------------------------------------
 # STREAMLIT UI
-# --------------------------
+# -------------------------------------------------------
 
 st.set_page_config(page_title="AI Travel Assistant", page_icon="✈️", layout="wide")
 
-if 'preferred_language' not in st.session_state:
-    st.session_state.preferred_language = 'en'
-
 st.title("✈️ AI Travel Assistant")
-st.markdown("Your smart travel planner for India and worldwide.")
 
 languages = {
     'en': 'English', 'hi': 'हिंदी', 'bn': 'বাংলা',
@@ -129,62 +109,65 @@ languages = {
     'pa': 'ਪੰਜਾਬੀ'
 }
 
-selected_language = st.sidebar.selectbox(
+preferred_lang = st.sidebar.selectbox(
     "Choose your preferred language",
     options=list(languages.keys()),
     format_func=lambda x: languages[x]
 )
 
-st.session_state.preferred_language = selected_language
-
-# --------------------------
-# FORM
-# --------------------------
+# -------------------------------------------------------
+# USER INPUT FORM
+# -------------------------------------------------------
 
 with st.form("trip_form"):
-    col1, col2 = st.columns(2)
+    destination = st.text_input("Where do you want to go?")
+    duration = st.number_input("How many days?", 1, 30, 5)
+    interests = st.multiselect(
+        "Your interests:",
+        ["Culture", "Food", "Nature", "Adventure", "History", "Shopping", "Relaxation"]
+    )
+    budget = st.select_slider("Budget level", ["Budget", "Moderate", "Luxury"])
 
-    with col1:
-        destination = st.text_input("Where do you want to go?")
-        travel_dates = st.date_input("Travel dates")
-        duration = st.number_input("Trip duration (days)", 1, 30, 3)
+    submit = st.form_submit_button("Plan My Trip!")
 
-    with col2:
-        interests = st.multiselect(
-            "Select interests",
-            ["Culture", "Food", "Nature", "Adventure", "History", "Shopping", "Relaxation"]
-        )
-        budget = st.select_slider("Budget", ["Budget", "Moderate", "Luxury"])
+# -------------------------------------------------------
+# PROCESSING
+# -------------------------------------------------------
 
-    submitted = st.form_submit_button("Plan My Trip!")
+if submit and destination:
+    with st.spinner("Generating your itinerary..."):
 
-# --------------------------
-# ACTION
-# --------------------------
-
-if submitted and destination:
-    with st.spinner("Planning your perfect trip..."):
-
+        # 1. Detect language of input
         detected = detect_language(destination)
-        lang = detected.get("language", "en")
+        detected_lang = detected.get("language", "en")
 
-        itinerary_response = generate_itinerary(
-            destination=destination,
-            duration=duration,
-            interests=interests,
-            budget=budget,
-            language=lang
+        # 2. Call Sarvam itinerary generator
+        response = generate_itinerary(
+            destination, duration, interests, budget, detected_lang
         )
 
-        content = itinerary_response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        # 3. Debug panel (shows raw API response)
+        st.markdown("### 🛠 DEBUG: API Response")
+        st.json(response)
 
-        if st.session_state.preferred_language != "en":
-            translated = translate_text(content, st.session_state.preferred_language)
-            content = translated.get("translated_text", content)
+        # 4. Extract content safely
+        content = ""
+        try:
+            content = response["choices"][0]["message"]["content"]
+        except:
+            content = "⚠️ No content returned from API. Check your API key or model."
 
+        # 5. Translate if needed
+        if preferred_lang != "en":
+            content = translate_text(content, preferred_lang)
+
+        # 6. Display itinerary
         st.markdown("## 🗺 Your Itinerary")
         st.markdown(content)
 
+# -------------------------------------------------------
+# FOOTER
+# -------------------------------------------------------
 
 st.markdown("---")
 st.markdown("<center>Powered by Sarvam AI</center>", unsafe_allow_html=True)
