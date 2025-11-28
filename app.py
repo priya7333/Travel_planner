@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 # --------------------------
 load_dotenv()
 # IMPORTANT: User must put the key in .env — NOT inside the code.
-SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
+SARVAM_API_KEY = os.getenv("sk_i3p0yyv0_k2jyL7qVHZN8d8BlJHa4ydJb")
 
 BASE_URL = "https://api.sarvam.ai/v1"
 
