@@ -1,10 +1,11 @@
+#sk_i3p0yyv0_k2jyL7qVHZN8d8BlJHa4ydJb
 import os
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SARVAM_API_KEY = os.getenv('SARVAM_API_KEY')
+SARVAM_API_KEY = os.getenv('sk_i3p0yyv0_k2jyL7qVHZN8d8BlJHa4ydJb')
 BASE_URL = "https://api.sarvam.ai/v1"
 
 # Language code mapping
