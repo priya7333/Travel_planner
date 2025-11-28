@@ -5,7 +5,7 @@ import requests
 # =========================================================
 # 🔐 INSERT YOUR API KEY BELOW (replace YOUR_KEY_HERE)
 # =========================================================
-SARVAM_API_KEY = "sk_i3p0yyv0_k2jyL7qVHZN8d8BlJHa4ydJb"   # ←←← REPLACE THIS ONLY
+SARVAM_API_KEY = "sk_qu4m7nvw_v4P2qUowg5ALmE4MckEYS74s"   # ←←← REPLACE THIS ONLY
 # =========================================================
 
 BASE_URL = "https://api.sarvam.ai/v1"
